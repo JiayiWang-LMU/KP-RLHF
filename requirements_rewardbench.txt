@@ -1,0 +1,6 @@
+# RewardBench dependencies
+# Note: This will temporarily downgrade transformers and trl
+# After running rewardbench, reinstall requirements_windows.txt to restore versions
+
+rewardbench==0.1.4
+# rewardbench pins: transformers==4.51.0, trl>=0.8.2

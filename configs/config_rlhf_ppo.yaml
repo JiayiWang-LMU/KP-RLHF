@@ -1,0 +1,104 @@
+## PPO Configuration for RLHF with Alpaca-7B
+## Single GPU setup with LoRA
+## Total: 20,000 completions (matched with GRPO)
+
+model:
+  base_model_name: 'chavinlo/alpaca-native'   # Alpaca-7B SFT checkpoint
+  reward_model_path: 'reward_model_out/checkpoint-1800'  # Trained reward model
+  cache_dir: 'models_cache'                   # Local cache for model weights
+  max_prompt_length: 135                      # Alpaca prompts 99th pct = 135 tokens
+  max_length: 512
+
+  # LoRA configuration
+  use_lora: true
+  lora_r: 8
+  lora_alpha: 16
+  lora_dropout: 0.05
+  lora_target_modules:
+    - q_proj
+    - v_proj
+    - k_proj
+    - o_proj
+
+# SFT dataset for prompts during PO
+dataset:
+  dataset_name: 'tatsu-lab/alpaca'
+  dataset_split: 'train'
+  prompt_field: 'instruction'
+  cache_dir: 'dataset/cache'
+  num_train_prompts: 5000                     # Training prompts from SFT dataset
+  num_samples: 5000                           # Total samples to draw
+  sample_seed: 42
+
+training:
+  output_dir: 'rlhf_out/ppo'
+  log_dir: 'logs/rlhf_ppo'
+
+  # Rollout / batching
+  batch_size: 8                               # per_device_train_batch_size
+  num_samples_per_prompt: 1                   # 1 completion per prompt
+
+  # Total training budget
+  # episodes = 20,000 (each episode = 1 prompt + 1 completion)
+  # completions = 20,000 × 1 = 20,000 completions
+  total_episodes: 20000
+
+  # Optimizer reuse
+  ppo_epochs: 2                               # inner iters per update (cf. GRPO num_iterations)
+  mini_batch_size: 8
+  gradient_accumulation_steps: 2
+
+  # Generation
+  max_new_tokens: 256
+  do_sample: true
+  rollout_temperature: 0.7
+  temperature: 0.7
+  top_k: 0
+  top_p: 0.95
+
+  # Optimization
+  learning_rate: 5.0e-6
+  lr_scheduler_type: 'cosine'
+  warmup_ratio: 0.03
+
+  # PPO hyperparameters
+  cliprange: 0.2
+  cliprange_value: 0.2
+  vf_coef: 0.1
+  gamma: 1.0
+  lam: 0.95
+
+  # KL penalty
+  init_kl_coef: 0.01
+
+  # Stability
+  max_grad_norm: 1.0
+
+  # Precision
+  fp16: false
+  bf16: true
+  use_flash_attention: false
+  gradient_checkpointing: true
+
+  # Reference model quantization
+  ref_quantization: '4bit'
+
+  # Logging / ckpt
+  logging_steps: 10
+  save_freq: 500
+  save_final_only: true
+
+  # Reproducibility
+  seed: 42
+
+monitoring:
+  log_reward: true
+  log_kl: true
+  log_response_length: true
+  log_entropy: true
+  log_samples: true
+  num_sample_prompts: 5
+  use_tensorboard: true
+
+safety:
+  max_kl: 2.0

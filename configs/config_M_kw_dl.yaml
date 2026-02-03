@@ -1,0 +1,54 @@
+# Configuration for Davidson-Luce k-wise reward model training with ties
+
+model:
+  model_name: 'microsoft/deberta-v3-base'  # Base encoder model (184M params)
+  max_length: 1024           # Max sequence length
+
+dataset:
+  dataset_path: 'dataset/UltraFeedback_tokenized'  # Pre-tokenized UltraFeedback dataset
+  tokenizer_path: 'dataset/UltraFeedback_tokenized/tokenizer'  # Saved tokenizer
+  train_subset: -1           # -1 = use full training set
+
+training:
+  output_dir: 'reward_model_out/M_kw_dl'
+  log_dir: 'logs/M_kw_dl'
+  
+  # Batch size and gradient accumulation
+  per_device_train_batch_size: 8
+  gradient_accumulation_steps: 12
+  
+  # Optimization
+  learning_rate: 2.0e-5
+  weight_decay: 0.01
+  lr_scheduler_type: 'linear'
+  warmup_ratio: 0.1
+  max_grad_norm: 1.0
+  
+  # Precision
+  fp16: false
+  bf16: true  # bfloat16 for better stability
+  
+  # Logging
+  logging_steps: 150
+  
+  # No evaluation during training (later evaluation on saved checkpoints)
+  evaluation_strategy: 'no'
+  
+  # Data loading
+  dataloader_num_workers: 2
+  
+  # Reporting
+  report_to: 'tensorboard'
+  
+  # Training duration
+  num_train_epochs: 3
+  
+  # Checkpointing (save all 12 checkpoints for later evaluation)
+  save_strategy: 'steps'
+  save_total_limit: null  # Keep all checkpoints
+  load_best_model_at_end: false  # Don't load best model
+
+# Davidson-Luce specific parameters
+dl:
+  max_tie_size: 4            # D: maximum allowed size of a tie
+  tie_penalty: 1.0           # δ: Tie parameter δ_{|S|} = 1.0 uniformly for all sizes
